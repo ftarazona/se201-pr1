@@ -36,3 +36,14 @@ Branchements de retour de fonction
 4c:	0000 0000 0000 0000 1000 0000 0110 0111 JALR	x0, x1, #0
 50:	1111 1111 1111 0000 0000 0101 0001 0011 ADDI	a0, x0, #-1
 54:	0000 0000 0000 0000 1000 0000 0110 0111	JALR	x0, x1, #0
+
+C'est une somme de vecteurs.
+a0 contient l'adresse de v0
+a1 contient l'adresse de v1
+a2 contient l'adresse de v2 = v0 + v1
+a3 contient la taille du vecteur
+
+Les retours prématurés sont déclenchés si l'une des adresses est nulle. On a alors retour d'une erreur.
+La fonction renvoie la taille du vecteur, négative ou positive.
+
+a7 contient, durant la boucle, la valeur de la dernière adresse sur laquelle se retrouve un élément de a0.
