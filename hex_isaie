@@ -1,0 +1,8 @@
+38 I : ADDI x11, x11, #4
+3c I : ADDI x12, x12, #4
+40 SB : BNE x15, x17, #4082 (0b111111110010)
+44 I : JALR x0, x1, #0
+48 I : ADDI x10, x0, #4095
+4c I : JALR x0, x1, #0
+50 I : ADDI x10, x0, #4095
+54 I : JALR x0, x1, #0
