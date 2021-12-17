@@ -24,6 +24,8 @@ fn:  R3 = 0;
 
 end: R9 = 0;
 
+
+
 The actual jump is made "2 instructions" later than expected.
 Consider this pseudocode:
     
@@ -32,10 +34,10 @@ Consider this pseudocode:
     INSTR1 ...
     INSTR2 ...
 
-    
 
 fn : ...
 
 
 The 2 instructions following a jump will be in the pipeline when the jump is executed. Without branch delay slots, you'd have to remove these instructions from the pipeline to ensure correct codeflow => loss in performance
 Branch delay slots are instructions that are placed after a jump, that will always be executed (ex: useful instructions for after the jump back). That ways, there is still one instruction executed per clock cycle.
+The only drawback would be if there's no such useful instructions, the compiler would have to put some "placeholder" instructions, but this situation seems very unlikely.
