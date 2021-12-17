@@ -1,0 +1,41 @@
+Completing one instruction per clock cycle result in branch delay slots. 
+
+ex from wikipedia :
+
+
+ R0 = 0;
+     CALL fn (DB);      /* call a function, below at label "fn" */
+     R1 = 0;            /* first delay slot */
+     R2 = 0;            /* second delay slot */
+     /***** discontinuity here (the CALL takes effect) *****/
+
+     R6 = 0;            /* the CALL/RTS comes back here, not at "R1 = 0" */
+     JUMP end (DB);
+     R7 = 0;            /* first delay slot */
+     R8 = 0;            /* second delay slot */
+     /***** discontinuity here (the JUMP takes effect) *****/
+
+     /* next 4 instructions are called from above, as function "fn" */
+fn:  R3 = 0;
+     RTS (DB);          /* return to caller, past the caller's delay slots */
+     R4 = 0;            /* first delay slot */
+     R5 = 0;            /* second delay slot */
+     /***** discontinuity here (the RTS takes effect) *****/
+
+end: R9 = 0;
+
+The actual jump is made "2 instructions" later than expected.
+Consider this pseudocode:
+    
+    ...
+    CALL fn
+    INSTR1 ...
+    INSTR2 ...
+
+    
+
+fn : ...
+
+
+The 2 instructions following a jump will be in the pipeline when the jump is executed. Without branch delay slots, you'd have to remove these instructions from the pipeline to ensure correct codeflow => loss in performance
+Branch delay slots are instructions that are placed after a jump, that will always be executed (ex: useful instructions for after the jump back). That ways, there is still one instruction executed per clock cycle.
