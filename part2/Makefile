@@ -1,4 +1,4 @@
-OPT =-O3
+OPT =-O0
 
 .PHONY: clean compile as
 
