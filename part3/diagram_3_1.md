@@ -1,6 +1,7 @@
 
 | PC |  Instruction   |  a0   |  a1     |  a2     |  a3   |  a4    |  a5     |  a6    |  a7     | Explication
 |----|----------------|-------|---------|---------|-------|--------|---------|--------|---------|-------------
+|INIT| | 0x200 | 0x200   | 0x200   | 0x2   | 0x0    | 0x0     | 0x0    |0x0|
 |0x00|addi a7, a0, #0 | 0x200 | 0x200   | 0x200   | 0x2   | 0x0    | 0x0     | 0x0    |**0x200**| copie la valeur de `a0` dans `a7`
 |0x04|addi a0, a3, #0 |**0x2**| 0x200   | 0x200   | 0x2   | 0x0    | 0x0     | 0x0    | 0x200   | copie la valeur de `a3` dans `a0`
 |0x08|beqz a7, 0x48   | 0x2   | 0x200   | 0x200   | 0x2   | 0x0    | 0x0     | 0x0    | 0x200   | vérifie que le 1er argument (addresse du 1er vecteur) n'est pas `null`
