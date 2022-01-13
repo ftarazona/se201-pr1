@@ -529,25 +529,45 @@ En utilisant pour référence le processeur abordé en classe et en l'adaptant �
 
 Comme indiqué dans l'énoncé, le processeur fait usage d'un pipeline à 3 étages :
 - Le premier étage, `Instruction Fetch`, est inchangé par rapport au cours
-- Le deuxième étage, `Instruction Decode`, inclut désormais l'exécution des instructions modifiant le PC (`bnez`, `jmp`, `call`). Pour effectuer ce changement, le bloc de calcul a été ramené avant la bascule D associée (`ID/EX`). Cela est possible car notre seule instruction de saut conditionnel teste si un registre donné est non-nul. Il n'y a donc pas besoin d'attendre un calcul de l'ALU pour obtenir notre condition, on peut directement faire la vérification à la sortie du bloc `REGISTER FILES`.
+- Le deuxième étage, `Instruction Decode`, inclut désormais l'exécution des instructions modifiant le `PC` (`bnez`, `jmp`, `call`). Pour effectuer ce changement, le bloc de calcul a été ramené avant la bascule D associée (`ID/EX`). Cela est possible car notre seule instruction de saut conditionnel teste si un registre donné est non-nul. Il n'y a donc pas besoin d'attendre un calcul de l'ALU pour obtenir notre condition, on peut directement faire la vérification à la sortie du bloc `REGISTER FILES`. On peut noter le rôle important du bloc opératoire `SHIFT`, assurant l'alignement de l'adresse à laquelle on saute.
 - Le troisième étage, `Execute`, comprend désormais toutes les étapes des accès mémoire (calcul d'adresse, lecture, écriture). Il n'y a pas de bascule D sur les signaux RgWE, RgWId, RgWSel : l'écriture des registres se fait au début de `EX`, tandis que sa lecture à la fin de l'étape `ID`.
 
 
 Les signaux décodés sont mis à jour selon l'instruction reçue. Un signal restant inchangé d'une instruction précédente implique qu'il n'est pas utilisé ou qu'il sera ignoré par l'instruction courante. Voici un tableau explicatif des signaux :
 
-| Nom du signal | Description |
-|---------------|-------------|
-| branch | Indique si l'instruction est un saut (1 pour `bnez`,`jmp`, 0 sinon) |
+| Nom du signal | Taille en bits | Description |
+|---------------|----------------|-------------|
+| branch        | 1 | Indique si l'instruction est un saut (1 pour `bnez`,`jmp`, 0 sinon) |
+| RgWE          | 1 | Indique l'accès en mode écriture à `REGISTER FILE` |
+| RgWId         | 4 | Sélectionne le registre dans lequel écrire |
+| RgWSel        | 1 | Sélectionne la source de la donnée à écrire en mémoire (1 pour `ldr`, 0 sinon) |
+| operation     | 4 | Sélectionne la bonne opération au niveau de l'ALU |
+| RgRId1        | 4 | Premier registre lié à l'opération |
+| RgRId2        | 4 | Second registre lié à l'opération |
+| imm           | 12 | Immédiat lié à l'opération |
+| ALUsrc        | 1 | Sélectionne le deuxième argument fourni à l'ALU |
+
+
+#### `call` instruction
+\
+
+Rappel sur l'instruction `call` :
+
+![DIAG](4_2/instr_call.png "Processor diagram")\
+
+On utilise un immédiat pour donner sa nouvelle valeur au registre `pc`, l'ancienne étant stockée dans le registre `lr`. 
 
 
 
 
+#### Hazards, flushing logic
 
 
 
 
-
-
+Notre processeur ne nécessite pas de logique pour flush les instructions. Ceci est le résultat de deux facteurs :
+- L'exécution des sauts se fait à l'étape `ID` du pipeline. Ceci implique qu'une seule instruction aura vu son traitement débuter lors du saut. **Il y a donc potentiellement une instruction à flush**.
+- Notre architecture implémente **_un_ branch delay slot**. Autrement dit, une unique instruction suivant un saut est exécutée plutôt que d'être _flush_.
 
 
 
