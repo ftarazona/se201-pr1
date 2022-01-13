@@ -334,7 +334,7 @@ Cette instruction décale la valeur de `r0` de 0 bits, i.e. n’effectue aucun c
 
 Le processeur dispose de 16 registres, dont certains ont des fonctions particulières :
 
-|Register(s)| Usage                     |
+|Registre(s)| Utilisation               |
 |-----------|---------------------------|
 | r0        | return value              |
 | r0 - r3   | function arguments        |
@@ -519,6 +519,31 @@ invalid_ret:
 ```
 
 ### Pipelining
+
+#### Processor diagram
+\
+
+En utilisant pour référence le processeur abordé en classe et en l'adaptant à notre jeu d'instructions, on obtient le diagramme suivant :
+
+![DIAG](4_2/schematics.png "Processor diagram")\
+
+Comme indiqué dans l'énoncé, le processeur fait usage d'un pipeline à 3 étages :
+- Le premier étage, `Instruction Fetch`, est inchangé par rapport au cours
+- Le deuxième étage, `Instruction Decode`, inclut désormais l'exécution des instructions modifiant le PC (`bnez`, `jmp`, `call`). Pour effectuer ce changement, le bloc de calcul a été ramené avant la bascule D associée (`ID/EX`). Cela est possible car notre seule instruction de saut conditionnel teste si un registre donné est non-nul. Il n'y a donc pas besoin d'attendre un calcul de l'ALU pour obtenir notre condition, on peut directement faire la vérification à la sortie du bloc `REGISTER FILES`.
+- Le troisième étage, `Execute`, comprend désormais toutes les étapes des accès mémoire (calcul d'adresse, lecture, écriture). Il n'y a pas de bascule D sur les signaux RgWE, RgWId, RgWSel : l'écriture des registres se fait au début de `EX`, tandis que sa lecture à la fin de l'étape `ID`.
+
+
+Les signaux décodés sont mis à jour selon l'instruction reçue. Un signal restant inchangé d'une instruction précédente implique qu'il n'est pas utilisé ou qu'il sera ignoré par l'instruction courante. Voici un tableau explicatif des signaux :
+
+| Nom du signal | Description |
+|---------------|-------------|
+| branch | Indique si l'instruction est un saut (1 pour `bnez`,`jmp`, 0 sinon) |
+
+
+
+
+
+
 
 
 
