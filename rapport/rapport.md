@@ -388,6 +388,7 @@ caller:
 \
 
 Nous pouvons à l’aide de nos nouvelles instructions réécrire la fonction d’addition vectorielle. Nous rappelons la définition de ses arguments :
+
 - `r0` : Adresse du premier vecteur
 - `r1` : Adresse du deuxième vecteur
 - `r2` : Adresse du vecteur somme
@@ -525,9 +526,10 @@ invalid_ret:
 
 En utilisant pour référence le processeur abordé en classe et en l'adaptant à notre jeu d'instructions, on obtient le diagramme suivant :
 
-![DIAG](4_2/schematics.png "Processor diagram")\
+![DIAG](4_2/schematics.jpg "Processor diagram")\
 
 Comme indiqué dans l'énoncé, le processeur fait usage d'un pipeline à 3 étages :
+
 - Le premier étage, `Instruction Fetch`, est inchangé par rapport au cours
 - Le deuxième étage, `Instruction Decode`, inclut désormais l'exécution des instructions modifiant le `PC` (`bnez`, `jmp`, `call`). Pour effectuer ce changement, le bloc de calcul a été ramené avant la bascule D associée (`ID/EX`). Cela est possible car notre seule instruction de saut conditionnel teste si un registre donné est non-nul. Il n'y a donc pas besoin d'attendre un calcul de l'ALU pour obtenir notre condition, on peut directement faire la vérification à la sortie du bloc `REGISTER FILES`. On peut noter le rôle important du bloc opératoire `SHIFT`, assurant l'alignement de l'adresse à laquelle on saute.
 - Le troisième étage, `Execute`, comprend désormais toutes les étapes des accès mémoire (calcul d'adresse, lecture, écriture). Il n'y a pas de bascule D sur les signaux RgWE, RgWId, RgWSel : l'écriture des registres se fait au début de `EX`, tandis que sa lecture à la fin de l'étape `ID`.
@@ -553,7 +555,7 @@ Les signaux décodés sont mis à jour selon l'instruction reçue. Un signal res
 
 Rappel sur l'instruction `call` :
 
-![DIAG](4_2/instr_call.png "Processor diagram")\
+![DIAG](4_2/img_call.png "Processor diagram")\
 
 On utilise un immédiat pour donner sa nouvelle valeur au registre `pc`, l'ancienne étant stockée dans le registre `lr`. 
 
@@ -566,6 +568,7 @@ On utilise un immédiat pour donner sa nouvelle valeur au registre `pc`, l'ancie
 
 
 Notre processeur ne nécessite pas de logique pour flush les instructions. Ceci est le résultat de deux facteurs :
+
 - L'exécution des sauts se fait à l'étape `ID` du pipeline. Ceci implique qu'une seule instruction aura vu son traitement débuter lors du saut. **Il y a donc potentiellement une instruction à flush**.
 - Notre architecture implémente **_un_ branch delay slot**. Autrement dit, une unique instruction suivant un saut est exécutée plutôt que d'être _flush_.
 
