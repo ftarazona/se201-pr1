@@ -18,11 +18,10 @@ open_L:
 	atril $(FILE_NAME).pdf
 
 #-----------------Isaie----------------------------------
-compile_I :
-	compile_html
-	compile_pdf_I
+compile_I : compile_html compile_pdf_I
 
 compile_pdf_I:
+	sed -i '156d' $(FILE_NAME).htmL
 	pandoc --pdf-engine=$(PDF_ENGINE_I) -s -o $(FILE_NAME).pdf $(FILE_NAME).html
 
 open_I: 
