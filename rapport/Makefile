@@ -1,5 +1,5 @@
 MARGIN_SIZE = 1in
-FILE_NAME = test
+FILE_NAME = rapport
 PDF_ENGINE_I = /usr/local/texlive/2021basic/bin/universal-darwin/pdflatex
 
 .PHONY: compile_L open_L
@@ -18,13 +18,12 @@ open_L:
 	atril $(FILE_NAME).pdf
 
 #-----------------Isaie----------------------------------
-compile_I : compile_html compile_pdf_I
+
 
 compile_pdf_I:
-	sed -i '156d' $(FILE_NAME).htmL
-	pandoc --pdf-engine=$(PDF_ENGINE_I) -s -o $(FILE_NAME).pdf $(FILE_NAME).html
+	pandoc -V geometry:margin=$(MARGIN_SIZE) --pdf-engine=$(PDF_ENGINE_I) -o $(FILE_NAME).pdf $(FILE_NAME).md
 
-open_I: 
+open_I: compile_pdf_I
 	open $(FILE_NAME).pdf
 
 #-------------------------------------------------------

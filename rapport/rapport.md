@@ -329,10 +329,24 @@ Le jeu d’instructions ne propose pas d’instruction `nop` spécifique. Néanm
 Il s’agit de l’instruction nulle `0x0000` qui n’est autre que `sht r0, #0`.
 Cette instruction décale la valeur de `r0` de 0 bits, i.e. n’effectue aucun changement.
 
-#### Registers
+#### Les registres 
 \
 
-Le processeur dispose de 16 registres, dont certains ont des fonctions particulières :
+Le processeur dispose de 16 registres, dont certains ont des fonctions particulières.\
+Un programmeur **ne devrait pas écrire directement dans `lr (r14)` ou `pc (r15)`**. Il devrait pour cela utiliser les instructions de branchement.
+
+
+Lors d’un **appel de fonction**, la fonction appelante donne ses arguments à la fonction appelée dans les registres `r0 - r3`. La fonction appelée est à même de modifier tout registre de travail (`r0 - r12`). Elle doit donc sauvegarder les registres qu’elle utilise dans la stack grâce à `sp`, en particulier le `link register lr`.
+
+
+La **fonction appelante** exécute enfin l’instruction `call`. Cette instruction effectue un saut inconditionnel vers l’adresse contenue dans le registre d’opérande. Elle sauvegarde également l’instruction suivante de la fonction appelante dans le `link register`.
+
+
+La **fonction appelée** s’exécute et se termine par la libération de la stack qu’elle a prise puis une instruction `jmp` sur le `link register`. La fonction appelante restore ses registres depuis la stack.
+
+
+Voici un tableau récapitulatif :
+
 |Registre(s)| Utilisation               |
 |-----------|---------------------------|
 | r0        | return value              |
@@ -341,46 +355,6 @@ Le processeur dispose de 16 registres, dont certains ont des fonctions particuli
 | r13 (sp)  | stack pointer             |
 | r14 (lr)  | link register             |
 | r15 (pc)  | program counter           |
-\
-
-Un programmeur **ne devrait pas écrire directement dans `lr` ou `pc`**. Il devrait pour cela utiliser les instructions de branchement.
-
-
-Lors d’un **appel de fonction**, la fonction appelante donne ses arguments à la fonction appelée dans les registres `r0 - r3`. La fonction appelée est à même de modifier tout registre de travail (`r0 - r12`). Elle doit donc sauvegarder les registres qu’elle utilise dans la stack grâce à `sp`, en particulier le `link register`.
-
-
-La **fonction appelante** exécute enfin l’instruction `call`. Cette instruction effectue un saut inconditionnel vers l’adresse contenue dans le registre d’opérande. Elle sauvegarde également l’instruction suivante de la fonction appelante dans le `link register`.
-
-La **fonction appelée** s’exécute et se termine par la libération de la stack qu’elle a prise puis une instruction `jmp` sur le `link register`. La fonction appelante restore ses registres depuis la stack.
-
-Donnons un exemple :\
-
-```
-callee:
-
-	mov r12, #4
-	sub sp, sp, r12
-	add r0, r0, r1
-	add r0, r0, r2
-	add sp, sp, r12
-	jmp lr
-
-caller:
-	//On souhaite sauvegarder r4, r5, r6
-	mov r0, #0
-	mov r1, #4
-	mov r2, #5
-	mov r12, #12
-	sub sp, sp, r12
-	str r4, sp
-	str r5, sp, #4
-	str r6, sp, #8
-	call callee
-	ldr r4, sp
-	ldr r5, sp, #4
-	ldr r6, sp, #8
-	add sp, sp, r12
-```
 
 
 #### Application
@@ -393,130 +367,59 @@ Nous pouvons à l’aide de nos nouvelles instructions réécrire la fonction d�
 - `r2` : Adresse du vecteur somme
 - `r3` : Taille du vecteur
 
-Pour commencer nous pouvons définir un registre à 0 en une seule instruction de décalage : le décalage étant logique, il suffit de décaler un registre de 32 bits. Nous utiliserons `r4`, premier registre de travail non réservé aux arguments :\
 
+Nous utilisons les _branch delay slots_ en plaçant une instruction à la suite de chaque instruction de branchement. Cette instruction sera toujours exécutée et permet de réduire l’impact qu’ont les sauts d’une exécution “normale”. En effet, comme nous ne disposons que d’une instruction de branchement conditionnelle, une exécution avec des paramètres valides produira parfois des sauts.\
 ```
-	0x00		sht r4, #32
-```
-
-Il faut ensuite effectuer des vérifications sur la non-nullité des adresses des vecteurs. Nous utilisons l’instruction bnez. Si le branchement est effectué, cela signifie que l’adresse est non nulle, donc valide. Cela signifie que nous aurons trois branchements dans une exécution normale de la fonction. Les performances en seront réduites mais nous verront par la suite comment faire usage du branch delay slot afin de limiter cela.\
-
-```
-	0x02		bnez r0, 0x08
-	0x04		bnez r1, 0x0c
-	0x06		bnez r2, 0x10
-```
-
-Il nous faut ensuite vérifier la validité de la taille du vecteur. Un branchement doit être effectué vers le retour de la fonction si la taille est positive ou nulle. Pour cela on regarde d’abord si la taille est négative en regardant son bit de poids fort. Puis on teste si elle vaut 0 en lui retranchant 1 et en vérifiant si ce résultat est négatif de la même manière. Il faut tout d’abord avoir transféré la taille demandée dans `r0`, en cas de retour prématuré.\
-
-```
-	//Transfert de la taille dans r0, on sauvegarde dans r5
-	0x08		add r5, r4, r0
-	0x0a		add r0, r4, r3
-
-	//On crée un masque pour sélectionner le bit de poids fort
-	0x0c		mov r6, #80
-	0x0e		sht r6, #24
-
-	//On sélectionne le bit de poids fort de r3 avec un and
-	//(deux nand successifs)
-	0x10		nand r7, r3, r6
-	0x12		nand r7, r7, r7
-
-	//On teste si r3 était négatif
-	0x14		bnez r7, ... (retour)
-
-	//On crée une variable temporaire à -1 dans r8
-	//(r8 ← 0xffffffff)
-	0x16		sht r8, #32
-	0x18		nand r8, r8, r8
-
-	//On teste la nullité de r3
-	0x1a		add r7, r3, r8
-	0x1c		nand r7, r7, r6
-	0x1e		nand r7, r7, r7
-	0x20		bnez r7, ... (retour)
-```
-
-On peut désormais entamer la boucle. Pour gérer les indices nous allons utiliser `r3`, décrémenter sa valeur à chaque itération jusqu’à son annulation.\
-
-```
-	//On crée une variable à 4 
-	0x22		sht r9, #32
-	0x24		mov r9, #4
-
-	//Corps de la boucle
-	0x26		ldr r10, r5
-	0x28		add r5, r5, r9
-	0x2a		ldr r11, r1
-	0x2c		add r1, r1, r9
-	0x2e		add r3, r3, r8
-	0x30		add r10, r10, r11
-	0x32		str r10, r2
-	0x34		add r2, r2, r9
-	0x36		bnez r3, ... (début de boucle, 0x4c)
-```
-
-On termine enfin par les instructions de retours : un retour normal ainsi qu’un retour à -1.\
-
-```
-	0x38		jmp lr
-	0x3a		sht r0, #32
-	0x3c		nand r0, r0, r0
-	0x3e		jmp lr
-```
-
-Nous allons maintenant apporter quelques modifications et présenter un code plus lisible. Tout d’abord, nous avons pu remarqué que deux valeurs constantes sont utilisées dans la fonction : 0, -1 et 4. Nous allons les définir dès le début de la fonction dans les registres `r4`, `r5`, `r6`.\
-Ensuite, nous utilisons les branch delay slots en plaçant une instruction à la suite de chaque instruction de branchement. Cette instruction sera toujours exécutée.
-
-```
-define_constants:
+	define_constants:
 	0x00		sht r4, #32		//r4 ← 0
-	0x02		sht r5, #32
-	0x04		nand r5, r5, r5	//r5 ← -1
-	0x06		sht r6, #32
-	0x08		mov r6, #4		//r6 ← 4
+	0x02		nand r5, r4, r4	//r5 ← -1
+	0x04		sht r6, #32
+	0x06		mov r6, #4		//r6 ← 4
 
-check_addresses:
+	check_addresses:
 	//On intercale le transfert de r3
-	0x0a		bnez r0, #24 <invalid_ret>
-	0x0c		add r7, r4, r0
-	0x0e		bnez r1, #22 <invalid_ret>
-	0x10		add r0, r4, r3
-	0x12		bnez r2, #20 <invalid_ret>
-	0x14		mov r8, 0x80		//On commence à créer un
-									//masque 0x8000000
+	0x08		sht r12, #32
+	0x0a		mov r12, #40 <invalid_ret>
+	0x0c		bnez r0, #3
+	0x0e		add r7, r4, r0
+	0x10		jmp r12 <invalid_ret>
+	0x12		bnez r1, #3
+	0x14		add r0, r4, r3
+	0x16		jmp r12 <invalid_ret>
+	0x18		bnez r2, #3
+	0x1a		mov r8, 0x80		//On commence à créer un masque 0x8000000
+	0x1c		jmp r12 <invalid_ret>
 	
-check_size:
-	0x16		sht r8, #24
-	0x18		nand r9, r3, r8
-	0x1a		nand r9, r9, r9
-	0x1c		bnez r9, #14 <ret>
-	0x1e		add r9, r3, r5
-	0x20		nand r9, r9, r8
-	0x22		nand r9, r9, r9
-	0x24		bnez r9, #10 <ret>
+	check_size:
+	0x1e		bnez r3, #3
+	0x20		mov r12, #0x3e
+	0x22		jmp r12 <ret>
+	0x24		sht r8, #24
+	0x26		nand r9, r3, r8
+	0x28		nand r9, r9, r9
+	0x2a		bnez r9, #14 <ret>
 	
-loop:
+	loop:
 	//Nous n’avons plus besoin de r8 et r9, nous nous en
 	//servons pour récupérer les valeurs de la mémoire
-	0x26		ldr r8, r7, #0
-	0x28		add r7, r7, r6
-	0x2a		ldr r9, r1, #0
-	0x2c		add r1, r1, r6
-	0x2e		add r8, r8, r9
-	0x30		str r8, r2, #0
-	0x32		add r3, r3, r5
-	0x34		bnez r3, #-7 <loop>
-	0x36		add r2, r2, r6
+	0x2c		ldr r8, r7, #0
+	0x2e		add r7, r7, r6		// r7 (v1) += 4
+	0x30		ldr r9, r1, #0
+	0x32		add r1, r1, r6		//r1 (v2) += 4
+	0x34		add r8, r8, r9
+	0x36		str r8, r2, #0
+	0x38		add r3, r3, r5		//Décrément du compteur
+	0x3a		bnez r3, #-7 <loop>
+	0x3c		add r2, r2, r6		//r2 (vtot) += 4
 
-ret:
-	0x38		jmp lr
+	ret:
+	0x3e		jmp lr
 	
-invalid_ret:
-	0x3a		add r0, r4, r5
-	0x3c		jmp lr
+	invalid_ret:
+	0x40		add r0, r4, r5
+	0x42		jmp lr
 ```
+
 
 ### Pipelining
 
@@ -554,9 +457,9 @@ Les signaux décodés sont mis à jour selon l'instruction reçue. Un signal res
 
 Rappel sur l'instruction `call` :
 
-![DIAG](4_2/img_call.png "Processor diagram")\
+![CALL](4_2/img_call.png "Call instruction")\
 
-On utilise un immédiat pour donner sa nouvelle valeur au registre `pc`, l'ancienne étant stockée dans le registre `lr`. **Notre implémentation de `call` requiert de pouvoir écrire `pc` et `lr` dans le même cycle**. Cela est dû à la valeur mise dans `pc` qui n'est pas relative à l'ancienne. Autrement dit, il faudrait faire une écriture classique plutôt que de passer par le bloc de l'étage ID.\
+On utilise un immédiat pour donner sa nouvelle valeur au registre `pc`, l'ancienne étant stockée dans le registre `lr`. **Notre implémentation de `call` requiert de pouvoir écrire `pc` et `lr` dans le même cycle**. Cela est dû à la valeur mise dans `pc` qui n'est pas relative à l'ancienne. Autrement dit, il faudrait faire une écriture classique plutôt que de passer par le bloc de l'étage ID.\
 **Pour des raisons de claretés, le schéma n'a pas été refait**, mais deux solutions sont possibles pour palier à ce problème :
 
 - Ajouter un canal dédié pour l'écriture de `pc`. Cette solution est assez lourde au niveau matériel, puisque cela implique l'utilisation de nouveaux signaux et introduit la problématique d'accès mémoire concurrent.
@@ -564,20 +467,57 @@ On utilise un immédiat pour donner sa nouvelle valeur au registre `pc`, l'ancie
     - `pc+4`
     - `pc+imm*2`
     - `imm`
+
 **Le signal contrôlant ce multiplexeur peut être branch, qui est désormais écrit sur deux bits plutôt qu'un**.
 
 
-La deuxième solution est préférable. 
+La deuxième solution est préférable. C'est avec celle-ci que je vais décrire l'exécution d'une instruction `call`. Posons pour le nouveau signal branch :
+
+|Nouvelle valeur de `pc`|Valeur de branch|
+|-----------------------|----------------|
+| `pc+4`                | `2'b00`        |
+| `pc+imm*2`            | `2'b01`        |
+| `imm`                 | `2'b11`        |
+
+
+De cette manière, le bit de poids faible joue un rôle identique à l'ancien signal branch (de 1 bit) tandis que le bit de poids fort détermine si l'on effectue un décalage relatif ou non. 
+
+![DIAG](4_2/schematics_call.jpg "Processor diagram")\
+
+Il n'y a rien de notable à l'étage `IF` du pipeline pour l'exécution de l'instruction `call`.
+
+
+À l'étage `ID`, Le signal d'entrée est décodé pour mettre à jour tous les signaux sortant sauf RgRId2 et ALUsrc qui ne sont pas utiles. Voici les valeurs prises par les signaux modifiés : 
+
+| Signal        | Taille en bits | Valeur      |
+|---------------|----------------|-------------|
+| branch (bis)  | 2              | `2'b11`, comme posé plus haut |
+| RgWE          | 1              | `1'b1`, on effectue une écriture dans `REGISTER FILE` |
+| RgWId         | 4              | `4'1110`, on écrit la valeur de `pc` dans `lr` |
+| RgWSel        | 1              | `1'b0`, on veut utiliser `ALU_out`, pas une donnée mémoire |
+| operation     | 4              | `4'bXXXX` valeur résultant en `ALU_out = rs1` |
+| RgRId1        | 4              | `4'1111`, le registre dont on veut la valeur est `pc`/`r15` |
+| imm           | 12             | `12'b000[imm]`, avec [imm] l'immédiat sur 9 bits fourni dans l'instruction |
+
+
+À l'étage `EX`, le processeur se comporte comme si l'on voulait copier la valeur d'un registre dans un autre (`pc` dans `lr` en l'occurence).
+
 
 #### Hazards, flushing logic
 \
 
+On peut être confronté à des _data hazards_ en cas d'utilisation immédiate du résultat d'une instruction.\
+Dans le cas de deux instructions de saut successives, l'implémentation du branch delay slot peut éventuellement mener à un _control hazard_.
+Il ne devrait pas se produire de _structural hazard_ de par : 
+
+- L'implémentation matérielle de `call` choisie. La seconde mentionnée aurait pu mener à des accès simultanés aux registres.
+- L'utilisation conventionnelle des registres (i.e. ne pas directement interagir avec `pc`/`lr`).
 
 
-Notre processeur ne nécessite pas de logique pour flush les instructions. Ceci est le résultat de deux facteurs :
+**Notre processeur ne nécessite pas de logique pour flush les instructions**. Ceci est le résultat de deux facteurs :
 
 - L'exécution des sauts se fait à l'étape `ID` du pipeline. Ceci implique qu'une seule instruction aura vu son traitement débuter lors du saut. **Il y a donc potentiellement une instruction à flush**.
-- Notre architecture implémente **_un_ branch delay slot**. Autrement dit, une unique instruction suivant un saut est exécutée plutôt que d'être _flush_.
+- Notre architecture implémente **_un_ branch delay slot**. Autrement dit, une unique instruction suivant un saut est exécutée plutôt que d'être _flush_. Il n'y a donc pas besoin de _flush_ d'instruction.
 
 
 
