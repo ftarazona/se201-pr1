@@ -1,10 +1,10 @@
-# SE201 : Projet 1
-##### Lucie Molinié, Isaïe Muron, Florian Tarazona
-
 ---
+title: 'SE201 : Projet 1'
+author: Florian Tarazona, Isaïe Muron, Lucie Molinié
+...
 
 \newpage
----
+
 ## Partie 1 - Jeu d'instruction RISC-V
 
 ### Le programme
