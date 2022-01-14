@@ -18,4 +18,4 @@
 ## Utilisation des Makefile pour MarkDown
 
 
-Pour utiliser les Makefile compilant les fichiers .md (rapport et diagramme d'exécution), il faut procéder à quelques ajustement. Un argument de la ligne de commande utilisée est le chemin vers le compilateur `pdflatex`. Cet argument est parfois optionnel, mais dans tous les cas il est propre à l'utilisateur.
+Pour utiliser les Makefile compilant les fichiers .md (rapport et diagramme d'exécution), il faut procéder à quelques ajustements. Un argument de la ligne de commande utilisée est le chemin vers le pdf engine `pdflatex`. Cet argument est parfois optionnel, mais dans tous les cas il est propre à l'utilisateur.
