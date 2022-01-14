@@ -1,22 +1,21 @@
-# se201-pr1
+# SE201 - PR1
 
-## Part 1: RISC-V Instruction Set
+## Structure du dépot
 
-L'objectif de cette partie est de comprendre le jeu d'instruction RISC-V et la façon dont les processeurs RISC-V sont encodés.
 
-### Determiner chaque instruction et leur format
+- Le dossier `doc` ne contient que des fichiers relatifs au sujet, pas notre travail.
+- Les dossiers `partX` réfèrent aux quatre parties du sujet. Ils contiennent des notes / code sources / images relatives aux parties.
+- Le dossier `rapport` contient tous les fichiers utiliser dans la création du rapport (.md, images, Makefile pour la compilation en pdf)
 
-1. On traduit en binaire les instructions données en hexadécimale.
-2. A l'aide de la documentation RISC-V (p.130) et de la dernière page du sujet, on identife le format des instructions et on trouve les mnémoniques associés aux suites de bits.
 
-    **Rappel sur les formats d'instruction:**
-    
-    * R: instruction opérant sur des registres
-    * I: instruction manipulant une constante "immediate" (ou aussi pour charger une valeur de la mémoire)
-    * S: instruction pour stocker une valeur dans la mémoire (utilise un immediate pour l'offset éventuel)
-    * SB: instruction pour faire un branchement conditionnel
-    * U et UJ (il n'y en a pas dans ce programme): instruction ou saut comprenant une constante "immediate" grande (20 bits au lieu de 12)
+## Fichiers sources
 
-### Determiner les opérandes et les registres
-3. opérandes
-4. a? symbolic name / n° x??
+
+- Le code source de la fonction C, des fichiers objets associés et les dumps en assembleur sont tous disponibles dans le dossier `part2`. Il y a également le Makefile utilisé pour nous faciliter la tâche.
+- Le fichier .md du diagramme du flot d'exécution est disponible dans le dossier `part3`. Le diagramme est également inclus dans le rapport (il y est plus lisible), il peut donc être visionné de deux façon.
+
+
+## Utilisation des Makefile pour MarkDown
+
+
+Pour utiliser les Makefile compilant les fichiers .md (rapport et diagramme d'exécution), il faut procéder à quelques ajustement. Un argument de la ligne de commande utilisée est le chemin vers le compilateur `pdflatex`. Cet argument est parfois optionnel, mais dans tous les cas il est propre à l'utilisateur.
