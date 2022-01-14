@@ -333,7 +333,6 @@ Cette instruction décale la valeur de `r0` de 0 bits, i.e. n’effectue aucun c
 \
 
 Le processeur dispose de 16 registres, dont certains ont des fonctions particulières :
-
 |Registre(s)| Utilisation               |
 |-----------|---------------------------|
 | r0        | return value              |
@@ -342,7 +341,7 @@ Le processeur dispose de 16 registres, dont certains ont des fonctions particuli
 | r13 (sp)  | stack pointer             |
 | r14 (lr)  | link register             |
 | r15 (pc)  | program counter           |
-
+\
 
 Un programmeur **ne devrait pas écrire directement dans `lr` ou `pc`**. Il devrait pour cela utiliser les instructions de branchement.
 
@@ -557,13 +556,21 @@ Rappel sur l'instruction `call` :
 
 ![DIAG](4_2/img_call.png "Processor diagram")\
 
-On utilise un immédiat pour donner sa nouvelle valeur au registre `pc`, l'ancienne étant stockée dans le registre `lr`. 
+On utilise un immédiat pour donner sa nouvelle valeur au registre `pc`, l'ancienne étant stockée dans le registre `lr`. **Notre implémentation de `call` requiert de pouvoir écrire `pc` et `lr` dans le même cycle**. Cela est dû à la valeur mise dans `pc` qui n'est pas relative à l'ancienne. Autrement dit, il faudrait faire une écriture classique plutôt que de passer par le bloc de l'étage ID.\
+**Pour des raisons de claretés, le schéma n'a pas été refait**, mais deux solutions sont possibles pour palier à ce problème :
+
+- Ajouter un canal dédié pour l'écriture de `pc`. Cette solution est assez lourde au niveau matériel, puisque cela implique l'utilisation de nouveaux signaux et introduit la problématique d'accès mémoire concurrent.
+- Ajouter un multiplexeur avant le bloc de saut à l'étage `ID` permettant de choisir la nouvelle valeur de `pc` parmis les suivantes :
+    - `pc+4`
+    - `pc+imm*2`
+    - `imm`
+**Le signal contrôlant ce multiplexeur peut être branch, qui est désormais écrit sur deux bits plutôt qu'un**.
 
 
-
+La deuxième solution est préférable. 
 
 #### Hazards, flushing logic
-
+\
 
 
 
